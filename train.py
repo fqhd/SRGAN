@@ -89,7 +89,7 @@ for epoch in range(EPOCHS):
 	img = T.ToPILImage()(vutils.make_grid(predicted_images.to('cpu'), normalize=True, padding=2, nrow=4))
 	img.save(f'progress/epoch_{epoch}.jpg')
 	generator = generator.to('cpu')
-	torch.save(generator, f'models/generator_epoch_{epoch}.pkl')
+	torch.save(generator.state_dict(), f'models/generator_epoch_{epoch}.pth')
 	generator = generator.to(device)
 
 plt.figure(figsize=(8, 5))
