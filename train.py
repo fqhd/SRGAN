@@ -9,11 +9,15 @@ import torchvision.transforms as T
 import torchvision.utils as vutils
 import time
 import matplotlib.pyplot as plt
+from torchmetrics.image import PeakSignalNoiseRatio, StructuralSimilarityIndexMeasure
 
 print(f'Started training using device: {device}')
 
 generator = ResidualAttentionUNet().to(device)
 discriminator = Discriminator().to(device)
+
+psnr_metric = PeakSignalNoiseRatio(data_range=1.0).to(device)
+ssim_metric = StructuralSimilarityIndexMeasure(data_range=1.0).to(device)
 
 d_opt = torch.optim.Adam(discriminator.parameters(), lr=LEARNING_RATE, betas=(BETA_1, BETA_2))
 g_opt = torch.optim.Adam(generator.parameters(), lr=LEARNING_RATE, betas=(BETA_1, BETA_2))
@@ -22,7 +26,7 @@ loss_fn = nn.BCELoss()
 recon_loss = nn.L1Loss()
 
 fixed_noise = torch.randn(test_dl.batch_size, Z_DIM, device=device)
-fixed_small_images, _ = next(iter(test_dl))
+fixed_small_images, fixed_big_images = next(iter(test_dl))
 
 plt.figure(figsize=(8, 8))
 for i in range(16):
@@ -86,6 +90,14 @@ for epoch in range(EPOCHS):
 	
 	with torch.no_grad():
 		predicted_images = generator(fixed_small_images, fixed_noise)[:16]
+
+		real_images = fixed_big_images.to(device)
+
+		psnr_val = psnr_metric(predicted_images, real_images).item()
+		ssim_val = ssim_metric(predicted_images, real_images).item()
+		
+		print(f"[Epoch {epoch}] PSNR: {psnr_val:.4f} | SSIM: {ssim_val:.4f}")
+	
 	img = T.ToPILImage()(vutils.make_grid(predicted_images.to('cpu'), normalize=True, padding=2, nrow=4))
 	img.save(f'progress/epoch_{epoch}.jpg')
 	generator = generator.to('cpu')

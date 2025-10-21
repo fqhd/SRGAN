@@ -26,6 +26,7 @@ class Dataset(dutils.Dataset):
 
 transform = T.Compose([
 	T.ToPILImage(),
+	T.Resize(224),
 	T.RandomRotation(10),
 	T.CenterCrop(192),
 	T.RandomCrop(180),
